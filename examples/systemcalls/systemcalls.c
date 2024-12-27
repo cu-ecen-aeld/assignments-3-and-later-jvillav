@@ -1,5 +1,11 @@
 #include "systemcalls.h"
-
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 /**
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
@@ -16,7 +22,12 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
-
+    int result = system(cmd);
+    
+    if (result != 0){
+	return false;
+    }
+    
     return true;
 }
 
@@ -58,10 +69,43 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    pid_t pid;
+    int status;
+    const char* path = command[0];
+    
+    if(path[0] != '/'){
+	return false; // not an absolute path.
+    } 
+
+
+    pid = fork();
+    
+    if(pid == -1){
+	return false; // child process not created, return with error
+    }
+    
+    if (pid ==0){
+
+	    execv(path, command);
+	    perror("execv failed");
+	    _exit(1);
+
+    }
+
+    if (waitpid(pid, &status, 0) == -1){
+	    va_end(args);
+	    return false;
+    }
+    if (WIFEXITED(status)){
+	    int exit_status = WEXITSTATUS(status);
+	    va_end(args);
+	    return exit_status == 0;
+    }
+    
 
     va_end(args);
 
-    return true;
+    return false;
 }
 
 /**
@@ -92,8 +136,43 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    int kidpid;
 
-    va_end(args);
+    switch (kidpid = fork()) {
+  	case -1:
+		perror("fork"); 
+		return false;
+	case 0:
 
-    return true;
+    	        int fd = open(outputfile,  O_WRONLY|O_CREAT|O_TRUNC, 0664);
+		if (fd < 0){
+			perror("open failed");
+			abort();
+		}
+
+			  
+		if (dup2(fd, STDOUT_FILENO) < 0) {      // redirect stdoutput 
+			perror("dup2 failed"); 
+			close(fd);		
+			abort(); 
+		}
+
+		close(fd);
+
+    		execv(command[0], command);
+		perror("execv failed");
+	        return false;	
+  	default:
+		{
+			int status;
+			if (waitpid(kidpid, &status, 0) == -1){
+				perror("waitpid failed");
+				va_end(args);
+				return false;
+			}
+			va_end(args);
+			return WIFEXITED(status) && (WEXITSTATUS(status) == 0);
+		}
+    }
+
 }
