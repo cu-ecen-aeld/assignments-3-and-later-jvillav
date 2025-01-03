@@ -28,13 +28,16 @@ cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/linux-stable" ]; then
     #Clone only if the repository does not exist.
 	echo "CLONING GIT LINUX STABLE VERSION ${KERNEL_VERSION} IN ${OUTDIR}"
-	git clone --depth 1 ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
+	git clone  ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
 fi
 
 if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout  ${KERNEL_VERSION}
+    git restore './scripts/dtc/dtc-lexer.l'
+    sed -i '41d' './scripts/dtc/dtc-lexer.l'
+
 
     # TODO: Add your kernel build steps here
     echo "Starting mrproper..."
@@ -52,8 +55,8 @@ fi
 
 echo "Adding the Image in outdir"
 echo "Copying image to ${OUTDIR}..."
-cp  ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/
-cp  ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image.gz ${OUTDIR}/
+cp  ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}
+cp  ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image.gz ${OUTDIR}
 echo "Finished building linux image..."
 
 
@@ -118,7 +121,10 @@ sudo mknod -m 666 dev/console c 1 5
 cd ${FINDER_APP_DIR}
 make clean
 make CROSS_COMPILE=${CROSS_COMPILE}
-
+echo "####################################################"
+echo "OUTDIR=$OUTDIR"
+echo "RUNNING manual-linux.sh"
+echo "####################################################"
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
