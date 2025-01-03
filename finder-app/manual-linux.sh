@@ -119,8 +119,11 @@ sudo mknod -m 666 dev/console c 1 5
 
 # TODO: Clean and build the writer utility
 cd ${FINDER_APP_DIR}
-make clean
-make CROSS_COMPILE=${CROSS_COMPILE}
+if [ ! -e ./writer ]; then
+	# Compile if needed
+	make CROSS_COMPILE=${CROSS_COMPILE}
+fi
+
 echo "####################################################"
 echo "OUTDIR=$OUTDIR"
 echo "RUNNING manual-linux.sh"
