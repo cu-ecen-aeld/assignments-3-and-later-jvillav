@@ -47,9 +47,9 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     echo "Starting all..."
     make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- all
     
-    echo "Starting modules\nPress any key to continue..."
+    echo "Starting modules..."
     #make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- modules
-    echo "Starting dtbs\nPress any key to continue..."
+    echo "Starting dtbs..."
     make ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- dtbs
 fi
 
@@ -71,7 +71,7 @@ then
 fi
 
 # TODO: Create necessary base directories
-for d in  'bin' 'dev' 'etc' 'lib' 'lib64' 'proc' 'sbin'  'sys' 'tmp' 'usr' 'var' 'root' 'usr/bin'  'usr/lib'  'usr/sbin'  'var/log'; 
+for d in  'home' 'bin' 'dev' 'etc' 'lib' 'lib64' 'proc' 'sbin'  'sys' 'tmp' 'usr' 'var' 'root' 'usr/bin'  'usr/lib'  'usr/sbin'  'var/log'; 
 
 	do
 		mkdir -p ${OUTDIR}/rootfs/$d
@@ -81,7 +81,7 @@ for d in  'bin' 'dev' 'etc' 'lib' 'lib64' 'proc' 'sbin'  'sys' 'tmp' 'usr' 'var'
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
 then
-git clone git://busybox.net/busybox.git
+    git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
@@ -90,44 +90,33 @@ git clone git://busybox.net/busybox.git
 else
     cd busybox
 fi
+
 echo "Compile busybox and install"
 # TODO: Make and install busybox
-
-if [ ! -e ${OUTDIR}/bin/busybox ]; then
-
-	make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
-	make CONFIG_PREFIX="${OUTDIR}/rootfs" ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
-
-fi
+make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
+make CONFIG_PREFIX="${OUTDIR}/rootfs" ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 
 cd ${OUTDIR}/rootfs
-mkdir -p home
 
 echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
-cp ${FINDER_APP_DIR}/lib/libm.so.6  ${OUTDIR}/rootfs/lib64/
-cp ${FINDER_APP_DIR}/lib/libresolv.so.2  ${OUTDIR}/rootfs/lib64/
-cp ${FINDER_APP_DIR}/lib/libc.so.6  ${OUTDIR}/rootfs/lib64/
-cp ${FINDER_APP_DIR}/lib/ld-linux-aarch64.so.1  ${OUTDIR}/rootfs/lib/
+cp ${FINDER_APP_DIR}/lib/libm.so.6  ${OUTDIR}/rootfs/lib64
+cp ${FINDER_APP_DIR}/lib/libresolv.so.2  ${OUTDIR}/rootfs/lib64
+cp ${FINDER_APP_DIR}/lib/libc.so.6  ${OUTDIR}/rootfs/lib64
+cp ${FINDER_APP_DIR}/lib/ld-linux-aarch64.so.1  ${OUTDIR}/rootfs/lib
 
 # TODO: Make device nodes
 sudo mknod -m 666 dev/null c 1 3
-sudo mknod -m 666 dev/console c 1 5
+sudo mknod -m 600 dev/console c 1 5
 
 # TODO: Clean and build the writer utility
 cd ${FINDER_APP_DIR}
-if [ ! -e ./writer ]; then
-	# Compile if needed
-	make CROSS_COMPILE=${CROSS_COMPILE}
-fi
+make clean
+make CROSS_COMPILE=${CROSS_COMPILE}
 
-echo "####################################################"
-echo "OUTDIR=$OUTDIR"
-echo "RUNNING manual-linux.sh"
-echo "####################################################"
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
@@ -149,8 +138,3 @@ cd "$OUTDIR"
 gzip -f initramfs.cpio
 
 
-
-if [ ! -e "${OUTDIR}/Image" ]; then
-echo "ERROR NO IMAGE FOUND!"
-exit -1
-fi
