@@ -1,4 +1,4 @@
-# !/bin/bash
+# !/bin/sh
 # Script to open qemu terminal.
 # Author: Siddhant Jajoo.
 
@@ -11,8 +11,8 @@ if [ -z "${OUTDIR}" ]; then
     echo "No outdir specified, using ${OUTDIR}"
 fi
 
-KERNEL_IMAGE=${OUTDIR}/Image
-INITRD_IMAGE=${OUTDIR}/initramfs.cpio.gz
+KERNEL_IMAGE="${OUTDIR}/Image"
+INITRD_IMAGE="${OUTDIR}/initramfs.cpio.gz"
 
 if [ ! -e ${KERNEL_IMAGE} ]; then
     echo "Missing kernel image at ${KERNEL_IMAGE}"
